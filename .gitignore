@@ -38,3 +38,9 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# Local development caches
+.gradle-home/
+.tools/
+.superpowers/
+
