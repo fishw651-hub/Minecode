@@ -59,6 +59,8 @@
 - 创建：`src/client/java/mine/coding/client/AiHttpClient.java`
 - 创建：`src/client/java/mine/coding/client/AiChatController.java`
 - 创建：`src/client/java/mine/coding/client/ChatEvent.java`
+- 创建：`src/main/java/mine/coding/ai/transport/AiOrchestrator.java`
+- 创建：`src/main/java/mine/coding/ai/transport/ChatMessage.java`
 - 测试：`src/test/java/mine/coding/client/AiHttpClientTest.java`
 
 **接口：**
@@ -66,6 +68,7 @@
 - `AiHttpClient.streamChat(AiProfile profile, String userMessage, Consumer<ChatEvent> onEvent, Consumer<Throwable> onError)` 返回 `CompletableFuture<Void>`。
 - `ChatEvent` 类型为 `THOUGHT_SUMMARY`、`TEXT_DELTA`、`PLAN_READY`、`ERROR`、`DONE`，每个事件带时间戳和文本。
 - `AiChatController.send(String)`、`cancel()`、`retryLast()`、`isBusy()` 管理单玩家单任务状态。
+- `AiOrchestrator` 读取 `AiPlan.delegations()`，最多并发派遣 3 个子 Agent；子 Agent 深度固定为 1，公开 QUEUED/RUNNING/TEXT/COMPLETED/FAILED/CANCELLED 状态；主 Agent 汇总可用结果后才发送唯一的 `PLAN_READY`，全程最多 5 次模型请求且可取消。
 
 - [ ] **步骤 1：写失败测试**。使用可注入的 `HttpClient`/传输接口，验证请求包含 Bearer Key、模型、思考强度和 JSON 响应格式；验证非 2xx 与断流转成 `ERROR`。
 - [ ] **步骤 2：运行测试确认失败**。
@@ -74,6 +77,9 @@
 - [ ] **步骤 5：把回调切回客户端主线程**。使用 `Minecraft.getInstance().execute(...)` 更新屏幕状态，渲染线程不等待 Future。
 - [ ] **步骤 6：运行测试确认通过**。
 - [ ] **步骤 7：提交任务**。
+
+- [ ] **步骤 8：实现受限子 Agent 编排**。给每个委派生成 task ID，带入 role/task/context/父档案与 skills；子 Agent 不得递归派遣；一个子任务失败不能丢弃其他结果；取消时取消全部 Future；过期请求不能回调 UI。
+- [ ] **步骤 9：为编排写测试**。使用可注入传输层验证三任务并发、禁止递归、失败仍汇总、取消传播和重复 action ID 被拒绝。
 
 提交：`git add src/client/java/mine/coding/client src/test/java/mine/coding/client && git commit -m "feat: add async ai chat client"`
 
