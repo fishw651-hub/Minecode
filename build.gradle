@@ -30,10 +30,18 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+	testImplementation sourceSets.client.output
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
 }
 
 test {
 	useJUnitPlatform()
+	// Keep forked-JVM scratch files inside the project. Hardened/sandboxed environments
+	// routinely deny temp-directory creation to child processes, which would otherwise
+	// fail every filesystem-backed test rather than exercising the code under test.
+	def testTempDir = layout.buildDirectory.dir("test-tmp")
+	doFirst { testTempDir.get().asFile.mkdirs() }
+	systemProperty "java.io.tmpdir", testTempDir.get().asFile.absolutePath
 }
 
 processResources {

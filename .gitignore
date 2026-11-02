@@ -44,4 +44,5 @@ replay_*.log
 .tools/
 .superpowers/
 .toolchain/
+.tmpcompile/
 
