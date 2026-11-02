@@ -4,6 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import mine.coding.ai.spatial.FocusRequest;
+import mine.coding.ai.spatial.ProjectDefinition;
+import mine.coding.ai.spatial.StageCheckpoint;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -17,12 +20,20 @@ public record AiPlan(
         List<AiAction> actions,
         List<String> memoryDrafts,
         List<SkillDraft> skillDrafts,
-        List<Delegation> delegations
+        List<Delegation> delegations,
+        ProjectDefinition projectDraft,
+        List<FocusRequest> attentionRequests,
+        StageCheckpoint checkpoint
 ) {
     /** Backwards-compatible constructor for plans that do not declare delegations. */
     public AiPlan(String message, String thoughtSummary, List<AiAction> actions,
                   List<String> memoryDrafts, List<SkillDraft> skillDrafts) {
-        this(message, thoughtSummary, actions, memoryDrafts, skillDrafts, List.of());
+        this(message, thoughtSummary, actions, memoryDrafts, skillDrafts, List.of(), null, List.of(), null);
+    }
+
+    public AiPlan(String message, String thoughtSummary, List<AiAction> actions,
+                  List<String> memoryDrafts, List<SkillDraft> skillDrafts, List<Delegation> delegations) {
+        this(message, thoughtSummary, actions, memoryDrafts, skillDrafts, delegations, null, List.of(), null);
     }
 
     public AiPlan {
@@ -32,7 +43,9 @@ public record AiPlan(
         memoryDrafts = List.copyOf(memoryDrafts);
         skillDrafts = List.copyOf(skillDrafts);
         delegations = List.copyOf(delegations);
+        attentionRequests = List.copyOf(attentionRequests == null ? List.of() : attentionRequests);
         validateDelegations(delegations);
+        if (attentionRequests.size() > 3) throw new IllegalArgumentException("A plan may contain at most 3 attention requests");
     }
 
     public static AiPlan fromJson(String json) {
@@ -61,8 +74,13 @@ public record AiPlan(
         List<String> memories = parseStringArray(root, "memoryDrafts");
         List<SkillDraft> skills = parseSkillDrafts(root);
         List<Delegation> delegations = parseDelegations(root);
+        ProjectDefinition projectDraft = root.has("projectDraft") && root.get("projectDraft").isJsonObject()
+                ? ProjectDefinition.fromJson(root.getAsJsonObject("projectDraft")) : null;
+        List<FocusRequest> attentionRequests = parseFocusRequests(root);
+        StageCheckpoint checkpoint = root.has("checkpoint") && root.get("checkpoint").isJsonObject()
+                ? StageCheckpoint.fromJson(root.getAsJsonObject("checkpoint")) : null;
         return new AiPlan(optionalString(root, "message"), optionalString(root, "thoughtSummary"),
-                actions, memories, skills, delegations);
+                actions, memories, skills, delegations, projectDraft, attentionRequests, checkpoint);
     }
 
     public String toJson() {
@@ -102,9 +120,15 @@ public record AiPlan(
             item.addProperty("id", delegation.id());
             item.addProperty("role", delegation.role());
             item.addProperty("task", delegation.task());
+            if (delegation.focus() != null) item.add("focus", delegation.focus().toJson());
             delegationArray.add(item);
         }
         root.add("delegations", delegationArray);
+        if (projectDraft != null) root.add("projectDraft", projectDraft.toJson());
+        JsonArray focusArray = new JsonArray();
+        attentionRequests.forEach(focus -> focusArray.add(focus.toJson()));
+        root.add("attentionRequests", focusArray);
+        if (checkpoint != null) root.add("checkpoint", checkpoint.toJson());
         return root.toString();
     }
 
@@ -226,11 +250,25 @@ public record AiPlan(
                 throw new IllegalArgumentException("delegations entries must be objects");
             }
             JsonObject item = entry.getAsJsonObject();
+            FocusRequest focus = item.has("focus") && item.get("focus").isJsonObject()
+                    ? FocusRequest.fromJson(item.getAsJsonObject("focus")) : null;
             delegations.add(new Delegation(requiredString(item, "id"), requiredString(item, "role"),
-                    requiredString(item, "task")));
+                    requiredString(item, "task"), focus));
         }
         validateDelegations(delegations);
         return delegations;
+    }
+
+    private static List<FocusRequest> parseFocusRequests(JsonObject root) {
+        JsonElement element = root.get("attentionRequests");
+        if (element == null) return List.of();
+        if (!element.isJsonArray()) throw new IllegalArgumentException("attentionRequests must be an array");
+        List<FocusRequest> requests = new ArrayList<>();
+        for (JsonElement entry : element.getAsJsonArray()) {
+            if (entry == null || !entry.isJsonObject()) throw new IllegalArgumentException("attentionRequests entries must be objects");
+            requests.add(FocusRequest.fromJson(entry.getAsJsonObject()));
+        }
+        return requests;
     }
 
     private static void validateDelegations(List<Delegation> delegations) {
@@ -259,7 +297,8 @@ public record AiPlan(
                 ? element.getAsString() : "";
     }
 
-    public record Delegation(String id, String role, String task) {
+    public record Delegation(String id, String role, String task, FocusRequest focus) {
+        public Delegation(String id, String role, String task) { this(id, role, task, null); }
         public Delegation {
             id = AiAction.requireText(id, "id");
             role = AiAction.requireText(role, "role");

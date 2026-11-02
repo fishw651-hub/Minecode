@@ -1,6 +1,12 @@
 package mine.coding;
 
 import net.fabricmc.api.ModInitializer;
+import mine.coding.network.MineCodeNetworking;
+import mine.coding.command.MineCodeCommand;
+import mine.coding.server.MineCodeService;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 import net.minecraft.resources.Identifier;
 
@@ -21,7 +27,12 @@ public class MineCode implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		LOGGER.info("Hello Fabric world!");
+		MineCodeNetworking.registerServer();
+		MineCodeCommand.register();
+		ServerPlayConnectionEvents.DISCONNECT.register((handler,server)->MineCodeService.disconnect(handler.player));
+		ServerLifecycleEvents.SERVER_STOPPED.register(MineCodeService::stop);
+		ServerTickEvents.END_SERVER_TICK.register(MineCodeService::tick);
+		LOGGER.info("MineCode server initialized");
 	}
 
 	public static Identifier id(String path) {

@@ -3,15 +3,15 @@
 	"id": "minecode",
 	"version": "${version}",
 	"name": "MineCode",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "游戏内 AI 建造、红石与指令助手，支持多档案、技能、世界记忆及子 Agent 分工。所有世界修改均需玩家确认。",
 	"authors": [
-		"Me!"
+		"MineCode Contributors"
 	],
+	"license": "CC-BY-NC-4.0",
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/fishw651-hub/Minecode",
+		"sources": "https://github.com/fishw651-hub/Minecode"
 	},
-	"license": "CC0-1.0",
 	"icon": "assets/minecode/icon.png",
 	"environment": "*",
 	"entrypoints": {
@@ -22,13 +22,6 @@
 			"mine.coding.client.MineCodeClient"
 		]
 	},
-	"mixins": [
-		"minecode.mixins.json",
-		{
-			"config": "minecode.client.mixins.json",
-			"environment": "client"
-		}
-	],
 	"depends": {
 		"fabricloader": ">=0.19.5",
 		"minecraft": "~26.3",

@@ -1,6 +1,10 @@
 package mine.coding.ai;
 
 import mine.coding.config.MineCodeConfig;
+import mine.coding.ai.spatial.BlockBox;
+import mine.coding.ai.spatial.FocusRequest;
+import mine.coding.ai.spatial.ProjectDefinition;
+import mine.coding.ai.spatial.StageCheckpoint;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -9,6 +13,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AiPlanTest {
+    @Test
+    void roundTripsOptionalProjectAttentionAndCheckpointWhileOldJsonStaysValid() {
+        ProjectDefinition project = new ProjectDefinition("p1", "塔", "目标", "blueprint", "minecraft:overworld",
+                BlockBox.ofCorners(0, 64, 0, 3, 67, 3));
+        FocusRequest focus = new FocusRequest("f1", "检查地基", BlockBox.ofCorners(0, 64, 0, 1, 65, 1));
+        StageCheckpoint checkpoint = new StageCheckpoint("foundation", "已完成地基", "建墙", false);
+        AiPlan plan = new AiPlan("ok", "summary", java.util.List.of(), java.util.List.of(), java.util.List.of(),
+                java.util.List.of(new AiPlan.Delegation("d", "builder", "build", focus)), project,
+                java.util.List.of(focus), checkpoint);
+
+        AiPlan reparsed = AiPlan.fromJson(plan.toJson());
+
+        assertEquals(project, reparsed.projectDraft());
+        assertEquals(java.util.List.of(focus), reparsed.attentionRequests());
+        assertEquals(checkpoint, reparsed.checkpoint());
+        assertEquals(focus, reparsed.delegations().getFirst().focus());
+        assertTrue(AiPlan.fromJson("{\"actions\":[]}").attentionRequests().isEmpty());
+    }
     @Test
     void roundTripsThreeActionTypesAndOptionalDelegations() {
         String json = """
@@ -63,7 +85,7 @@ class AiPlanTest {
     @Test
     void rejectsMissingBlockCoordinatesWithActionId() {
         String json = """
-                {"actions":[{"id":"missing-z","type":"PLACE_BLOCK","payload":{"x":1,"y":64,"block":"minecraft:stone"}}]}
+                {"actions":[{"id":"missing-z","type":"PLACE_BLOCK","description":"放置石头","risk":"low","payload":{"x":1,"y":64,"block":"minecraft:stone"}}]}
                 """;
 
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
@@ -75,7 +97,7 @@ class AiPlanTest {
 
     @Test
     void redactsApiKeyButKeepsItsFirstAndLastTwoCharacters() {
-        String apiKey = "sk-abcdefgh-secret";
+        String apiKey = "sk-fixture-dummy-secret";
         MineCodeConfig config = new MineCodeConfig(
                 "https://api.openai.com/v1/chat/completions", apiKey, "gpt-4o-mini", "medium");
 
