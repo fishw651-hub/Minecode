@@ -5,7 +5,7 @@
 	"name": "MineCode",
 	"description": "游戏内 AI 建造、红石与指令助手，支持多档案、技能、世界记忆及子 Agent 分工。所有世界修改均需玩家确认。",
 	"authors": [
-		"MineCode Contributors"
+		"AIEwater"
 	],
 	"license": "CC-BY-NC-4.0",
 	"contact": {

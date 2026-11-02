@@ -1,5 +1,8 @@
 # MineCode AI
 
+[![build](https://github.com/fishw651-hub/Minecode/actions/workflows/build.yml/badge.svg)](https://github.com/fishw651-hub/Minecode/actions/workflows/build.yml)
+[![license: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
+
 Minecraft Java **26.3** 的 Fabric AI 助手。在游戏内描述建筑、红石机器或指令任务，查看模型输出与公开思考摘要，再逐条确认对世界的修改。
 
 ## 功能
